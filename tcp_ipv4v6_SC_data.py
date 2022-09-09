@@ -21,17 +21,16 @@ class socketv4v6:
         return self.bindprot
     
     #启动服务器端设置
-    def ipv6client_s(self,CIp):
+    def ipv6client_s(self,SocketAll):
         self.tcp_sc_socket.listen(8)
         client_socket = self.tcp_sc_socket.accept()
         clientAddr = client_socket[1]
         if clientAddr[0] != "::1":
-            for index,value in enumerate(CIp):
+            for index,value in enumerate(SocketAll):
                 if value == None:
-                    CIp[index] = clientAddr
-                    break
-            client_socket_6 = client_socket[0]
-            return client_socket_6
+                    SocketAll[index] = client_socket
+                    return index
+            return "full"
         else:
             return None
     
@@ -42,34 +41,55 @@ class socketv4v6:
 
     #客户端设置
     def ipv6client_c(self,IPinfo):
-        self.__init__()
         self.tcp_sc_socket.connect(IPinfo)
         return self.tcp_sc_socket
 
 class socketv4v6DataInOut(socketv4v6):
     #判断是否启用服务端或客户端
-    def __init__(self): 
+    def __init__(self,writeCIp):
         super().__init__()
-        self.stopsniff = False
+        self.writeCIp = writeCIp
 
-    def ServerOnline(self,CIp,writeCIp):
-        self.tcp_sc = super().ipv6client_s(CIp)
-        if self.tcp_sc != None:
-            writeCIp()
+    # 启用服务器
+    def ServerOnline(self,SocketAll):
+        self.tcp_s = SocketAll
+        self.stopsniff = [False]*8
+        while True:
+            tcp_s_index = super().ipv6client_s(SocketAll)
+            if tcp_s_index == None:
+                break
+            elif tcp_s_index == "full":
+                continue
+            threading.Thread(target=self.Sin,args=(tcp_s_index,)).start()
+            threading.Thread(target=self.sniffAyirmak,args=(tcp_s_index,)).start()
+            self.writeCIp()
+    
+    # 捕捉线程函数
+    def sniffAyirmak(self,tcp_s_index):
+        filterstrin = "192.168.110.112"#input("请输入对方的虚拟IPV4地址：")
+        dststr = "{0}.{0}.{0}.{0}".format(tcp_s_index)
+        filterstr = "(src net 1.1.1.1 and dst net "+ dststr +") or dst net " + filterstrin
+        sniff(stop_filter=lambda data:self.Sout(data,tcp_s_index),filter=filterstr,count=0,timeout=None)
+    
 
+    # 启用客户端
     def ClientOnline(self,IPinfo):
-        print("1")
-        self.tcp_sc = super().ipv6client_c(IPinfo)
-        print("2")
+        super().__init__() 
+        self.stopsniff = False
+        self.tcp_c = super().ipv6client_c(IPinfo)
+        threading.Thread(target=self.Cin).start()
+        filterstrin = "192.168.110.112"#input("请输入对方的虚拟IPV4地址：")
+        filterstr = "(src net 1.1.1.1 and dst net 0.0.0.0) or dst net " + filterstrin
+        threading.Thread(target=lambda: sniff(stop_filter=self.Cout,filter=filterstr,count=0,timeout=None)).start()
+        '''stop_filter=function 返回值若为True则停止嗅探'''
 
     #接收数据处理
-    def SCin(self):
+    def Cin(self):
         while True:
             try:
-                recv_data = self.tcp_sc.recv(4096) 
+                recv_data = self.tcp_c.recv(4096) 
                 '''
                 默认发送缓冲区是65536
-                第二种情况是数据被分开了，可以拼接
                 '''
                 recv_data = Ether(eval(recv_data))
                 sendp(recv_data)
@@ -79,20 +99,62 @@ class socketv4v6DataInOut(socketv4v6):
                  print("错误报告：%s；防止继续出错关闭连接自终止程序"%(reportError))
                  self.stopsniff = True
                  send(IP(src="1.1.1.1",dst="0.0.0.0"))
-                 self.tcp_sc.close()
+                 self.tcp_c.close()
                  break
 
     #发送数据
-    def SCout(self,data):
+    def Cout(self,data):
         try:
-            self.tcp_sc.send(str(data).encode())
+            self.tcp_c.send(str(data).encode())
         finally:
             return self.stopsniff
 
-    def closerecv(self):
+    def Sin(self,tcp_s_index):
+        while True:
+            try:
+                recv_data = self.tcp_s[tcp_s_index][0].recv(4096) 
+                '''
+                默认发送缓冲区是65536
+                '''
+                recv_data = Ether(eval(recv_data))
+                sendp(recv_data)
+            except SyntaxError:
+                print("----------字符出错------------")
+            except ConnectionResetError as reportError:
+                print("错误报告：%s"%(reportError))
+                self.stopsniff[tcp_s_index] = True
+                dststr = "{0}.{0}.{0}.{0}".format(tcp_s_index)
+                send(IP(src="1.1.1.1",dst=dststr))
+                self.tcp_s[tcp_s_index][0].close()
+                self.tcp_s[tcp_s_index] = None
+                self.stopsniff[tcp_s_index] = False
+                self.writeCIp()
+                break
+            except ConnectionAbortedError as reportError:
+                print("错误报告：%s"%(reportError))
+                break
+
+    #发送数据
+    def Sout(self,data,tcp_s_index):
+        try:
+            print(tcp_s_index)
+            self.tcp_s[tcp_s_index][0].send(str(data).encode())
+        finally:
+            return self.stopsniff[tcp_s_index]
+
+    def closerecvC(self):
         self.stopsniff = True
         send(IP(src="1.1.1.1",dst="0.0.0.0"))
-        self.tcp_sc.close()
-        return "连接关闭"
+        self.tcp_c.close()
+
+    def closerecvS(self):
+        self.stopsniff = [True]*8
+        if self.tcp_s != None:
+            for index,value in enumerate(self.tcp_s):
+                if value != None:
+                    dststr = "{0}.{0}.{0}.{0}".format(index)
+                    send(IP(src="1.1.1.1",dst=dststr))
+                    self.tcp_s[index][0].close()
+                    self.tcp_sc_socket.close()
     
     
