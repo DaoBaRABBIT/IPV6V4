@@ -5,6 +5,7 @@ class main_function:
     def __init__(self,IPV4ADD,IPV6ADD,IPV6PORT):
         self.controlSC = 0
         self.SocketAll = [None]*8
+        self.otherIPV4 = [None]*8
         self.IPV4ADD = IPV4ADD
         self.IPV6ADD = IPV6ADD
         self.IPV6PORT = IPV6PORT
@@ -42,7 +43,7 @@ class main_function:
             if value != None:
                 self.Listbox_conninfoIP.insert(END,self.SocketAll[index][1][0])
                 self.Listbox_conninfoProt.insert(END,self.SocketAll[index][1][1])
-                self.Listbox_conninfo.insert(END,"已连接")
+                self.Listbox_conninfo.insert(END,self.otherIPV4[index])
         # 开始接受发送
     
     # 变更为服务器并启动服务
@@ -52,9 +53,9 @@ class main_function:
             s_bottom_top_main_window.pack(anchor="w")
             c_bottom_top_main_window.forget()
             self.Text_Tips.insert(INSERT,"服务器启动中......\n")
-            tlisten = threading.Thread(target=lambda: self.SocketCONN.ServerOnline(self.SocketAll))
+            tlisten = threading.Thread(target=lambda: self.SocketCONN.ServerOnline(self.SocketAll,self.otherIPV4))
             tlisten.start()
-            self.Text_Tips.insert(INSERT,"---等待对方IPV6连接---\n")
+            self.Text_Tips.insert(INSERT,"等待对方IPV6连接......\n")
         
         
     # 变更为客户端
@@ -63,11 +64,13 @@ class main_function:
             self.controlSC = 0
             s_bottom_top_main_window.forget()
             c_bottom_top_main_window.pack(anchor="w")
-            self.Text_Tips.insert(INSERT,"---关闭服务器---\n")
+            self.Text_Tips.insert(INSERT,"关闭服务器......\n")
             self.SocketCONN.closeaccept()
             self.SocketCONN.closerecvS()
             
-    
+    def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6):
+        threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6)).start()
+
     # 客户端连接开始
     def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6):
         try:

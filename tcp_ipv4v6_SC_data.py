@@ -1,3 +1,4 @@
+from Initialization_detection import getIPv64
 from public_modular import *
 
 '''
@@ -51,7 +52,7 @@ class socketv4v6DataInOut(socketv4v6):
         self.writeCIp = writeCIp
 
     # 启用服务器
-    def ServerOnline(self,SocketAll):
+    def ServerOnline(self,SocketAll,otherIPV4):
         self.tcp_s = SocketAll
         self.stopsniff = [False]*8
         while True:
@@ -60,15 +61,24 @@ class socketv4v6DataInOut(socketv4v6):
                 break
             elif tcp_s_index == "full":
                 continue
+            otherIPV4[tcp_s_index] = self.SFirstConn(tcp_s_index)
             threading.Thread(target=self.Sin,args=(tcp_s_index,)).start()
-            threading.Thread(target=self.sniffAyirmak,args=(tcp_s_index,)).start()
+            threading.Thread(target=self.sniffAyirmak,args=(tcp_s_index,otherIPV4[tcp_s_index])).start()
             self.writeCIp()
     
+    # 首次连接需互相告知对方本地IPV4地址
+    def SFirstConn(self,tcp_s_index):
+        recv_data = self.tcp_s[tcp_s_index][0].recv(4096)
+        if((recv_data.decode("gbk"))[:31] == "INeedYourIPV4AddressAndMyIPV4Is"):
+            IPV4 = getIPv64()[0]
+            self.tcp_s[tcp_s_index][0].send(("MyIPV4Is"+IPV4).encode("gbk"))
+            return (recv_data.decode("gbk"))[31:]
+        
+    
     # 捕捉线程函数
-    def sniffAyirmak(self,tcp_s_index):
-        filterstrin = "192.168.110.112"#input("请输入对方的虚拟IPV4地址：")
+    def sniffAyirmak(self,tcp_s_index,otherIPV4):
         dststr = "{0}.{0}.{0}.{0}".format(tcp_s_index)
-        filterstr = "(src net 1.1.1.1 and dst net "+ dststr +") or dst net " + filterstrin
+        filterstr = "(src net 1.1.1.1 and dst net "+ dststr +") or dst net " + otherIPV4
         sniff(stop_filter=lambda data:self.Sout(data,tcp_s_index),filter=filterstr,count=0,timeout=None)
     
 
@@ -77,11 +87,19 @@ class socketv4v6DataInOut(socketv4v6):
         super().__init__() 
         self.stopsniff = False
         self.tcp_c = super().ipv6client_c(IPinfo)
+        otherIPV4add = self.CFirstConn()
         threading.Thread(target=self.Cin).start()
-        filterstrin = "192.168.110.112"#input("请输入对方的虚拟IPV4地址：")
-        filterstr = "(src net 1.1.1.1 and dst net 0.0.0.0) or dst net " + filterstrin
+        filterstr = "(src net 1.1.1.1 and dst net 0.0.0.0) or dst net " + otherIPV4add
         threading.Thread(target=lambda: sniff(stop_filter=self.Cout,filter=filterstr,count=0,timeout=None)).start()
         '''stop_filter=function 返回值若为True则停止嗅探'''
+
+    def CFirstConn(self):
+        IPV4 = getIPv64()[0]
+        self.tcp_c.send(("INeedYourIPV4AddressAndMyIPV4Is"+IPV4).encode("gbk"))
+        recv_data = self.tcp_c.recv(4096)
+        if((recv_data.decode("gbk"))[:8] == "MyIPV4Is"):
+            return (recv_data.decode("gbk"))[8:]
+
 
     #接收数据处理
     def Cin(self):
@@ -96,7 +114,7 @@ class socketv4v6DataInOut(socketv4v6):
             except SyntaxError:
                 print("----------字符出错------------")
             except Exception as reportError:
-                 print("错误报告：%s；防止继续出错关闭连接自终止程序"%(reportError))
+                 print("错误报告：%s"%(reportError))
                  self.stopsniff = True
                  send(IP(src="1.1.1.1",dst="0.0.0.0"))
                  self.tcp_c.close()
@@ -146,6 +164,7 @@ class socketv4v6DataInOut(socketv4v6):
         self.stopsniff = True
         send(IP(src="1.1.1.1",dst="0.0.0.0"))
         self.tcp_c.close()
+        return "连接关闭"
 
     def closerecvS(self):
         self.stopsniff = [True]*8
