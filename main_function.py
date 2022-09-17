@@ -68,16 +68,17 @@ class main_function:
             self.SocketCONN.closeaccept()
             self.SocketCONN.closerecvS()
             
-    def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6):
-        threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6)).start()
+    def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):
+        threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4)).start()
 
     # 客户端连接开始
-    def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6):
+    def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):
         try:
             IPinfo = (IPV6ADDCONN,int(IPV6ADDCONNP))
             self.Text_Tips.insert(INSERT,"连接服务器中......\n")
             Button_ConnectionI6.configure(state=DISABLED,text="连接中...")
-            self.SocketCONN.ClientOnline(IPinfo)
+            otherIPV4add = self.SocketCONN.ClientOnline(IPinfo)
+            Label_OtherIPV4.configure(text=("对方主机的IPV4为："+otherIPV4add))
             Button_ConnectionI6.grid_forget()
             Button_StopI6.grid(row=3,column=0,columnspan=2,pady=5)
             self.Text_Tips.insert(INSERT,"连接服务器成功！！！\n")

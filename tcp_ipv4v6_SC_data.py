@@ -91,6 +91,7 @@ class socketv4v6DataInOut(socketv4v6):
         threading.Thread(target=self.Cin).start()
         filterstr = "(src net 1.1.1.1 and dst net 0.0.0.0) or dst net " + otherIPV4add
         threading.Thread(target=lambda: sniff(stop_filter=self.Cout,filter=filterstr,count=0,timeout=None)).start()
+        return otherIPV4add
         '''stop_filter=function 返回值若为True则停止嗅探'''
 
     def CFirstConn(self):
