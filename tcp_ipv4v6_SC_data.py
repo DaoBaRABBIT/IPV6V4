@@ -114,6 +114,18 @@ class socketv4v6DataInOut(socketv4v6):
                 sendp(recv_data)
             except SyntaxError:
                 print("----------字符出错------------")
+                print("----------拼接数据------------")
+                while True:
+                    try:
+                        recv_data += self.tcp_c.recv(4096)
+                        recv_data = Ether(eval(recv_data))
+                        sendp(recv_data)
+                        break
+                    except SyntaxError:
+                        pass
+                    except Exception:
+                        break
+                    
             except Exception as reportError:
                  print("错误报告：%s"%(reportError))
                  self.stopsniff = True
@@ -139,6 +151,18 @@ class socketv4v6DataInOut(socketv4v6):
                 sendp(recv_data)
             except SyntaxError:
                 print("----------字符出错------------")
+                print("----------拼接数据------------")
+                while True:
+                    try:
+                        recv_data += self.tcp_s[tcp_s_index][0].recv(4096)
+                        recv_data = Ether(eval(recv_data))
+                        sendp(recv_data)
+                        break
+                    except SyntaxError:
+                        pass
+                    except Exception:
+                        break
+                    
             except ConnectionResetError as reportError:
                 print("错误报告：%s"%(reportError))
                 self.stopsniff[tcp_s_index] = True
