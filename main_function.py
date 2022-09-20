@@ -6,17 +6,34 @@ class main_function:
         self.controlSC = 0
         self.SocketAll = [None]*8
         self.otherIPV4 = [None]*8
+
+        # 地址写入位置
         self.IPV4ADD = IPV4ADD
         self.IPV6ADD = IPV6ADD
         self.IPV6PORT = IPV6PORT
-        IPV64ADD = getIPv64()
-        IPV4ADD.set(IPV64ADD[0])
-        IPV6ADD.set(IPV64ADD[1])
-        self.SocketCONN = socketv4v6DataInOut(self.writeCIp)
-        IPV6PORT.set(self.SocketCONN.getPort())
 
+        # 初始化写入获取IP和获取MAC地址
+        
+    # 获取提示框地址后运行主程序以此来提示
     def setText_Tips(self,Text_Tips):
         self.Text_Tips = Text_Tips
+
+        IPV64ADD = getIPv64()
+        self.IPV4ADD.set(IPV64ADD[0]) #0为IPV4地址 1为IPV6地址
+        self.IPV6ADD.set(IPV64ADD[1])
+        
+        IPMACAGMAC = getIPMACAGMAC(IPV64ADD[0]) #0为网卡MAC地址 1为网关MAC地址
+        
+        if IPV64ADD[0] == "获取失败" or IPV64ADD[1] == "获取失败":
+            self.Text_Tips.insert(INSERT,"\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查IP地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！\n")
+            self.SocketCONN = None
+        else:
+            if IPMACAGMAC == None :
+                self.Text_Tips.insert(INSERT,"\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查MAC地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！\n")
+                self.SocketCONN = None
+            else:
+                self.SocketCONN = socketv4v6DataInOut(self.writeCIp,IPMACAGMAC)
+                self.IPV6PORT.set(self.SocketCONN.getPort())
 
     def setCIpPortState(self,Listbox_conninfoIP,Listbox_conninfoProt,Listbox_conninfo):
         self.Listbox_conninfoIP = Listbox_conninfoIP
@@ -25,10 +42,11 @@ class main_function:
     
     # 重置本机信息
     def Resetip(self):
-        IPV64ADD = getIPv64()
-        self.IPV4ADD.set(IPV64ADD[0])
-        self.IPV6ADD.set(IPV64ADD[1])
-        self.IPV6PORT.set(self.SocketCONN.getPort())
+        if self.SocketCONN != None:
+            IPV64ADD = getIPv64()
+            self.IPV4ADD.set(IPV64ADD[0])
+            self.IPV6ADD.set(IPV64ADD[1])
+            self.IPV6PORT.set(self.SocketCONN.getPort())
 
     # 清除提示
     def CleanText(self):
@@ -48,28 +66,31 @@ class main_function:
     
     # 变更为服务器并启动服务
     def ChangeS(self,s_bottom_top_main_window,c_bottom_top_main_window):
-        if self.controlSC == 0:
-            self.controlSC = 1
-            s_bottom_top_main_window.pack(anchor="w")
-            c_bottom_top_main_window.forget()
-            self.Text_Tips.insert(INSERT,"服务器启动中......\n")
-            tlisten = threading.Thread(target=lambda: self.SocketCONN.ServerOnline(self.SocketAll,self.otherIPV4))
-            tlisten.start()
-            self.Text_Tips.insert(INSERT,"等待对方IPV6连接......\n")
+        if self.SocketCONN != None:
+            if self.controlSC == 0:
+                self.controlSC = 1
+                s_bottom_top_main_window.pack(anchor="w")
+                c_bottom_top_main_window.forget()
+                self.Text_Tips.insert(INSERT,"服务器启动中......\n")
+                tlisten = threading.Thread(target=lambda: self.SocketCONN.ServerOnline(self.SocketAll,self.otherIPV4))
+                tlisten.start()
+                self.Text_Tips.insert(INSERT,"等待对方IPV6连接......\n")
         
         
     # 变更为客户端
     def ChangeC(self,s_bottom_top_main_window,c_bottom_top_main_window):
-        if self.controlSC == 1:
-            self.controlSC = 0
-            s_bottom_top_main_window.forget()
-            c_bottom_top_main_window.pack(anchor="w")
-            self.Text_Tips.insert(INSERT,"关闭服务器......\n")
-            self.SocketCONN.closeaccept()
-            self.SocketCONN.closerecvS()
+        if self.SocketCONN != None:
+            if self.controlSC == 1:
+                self.controlSC = 0
+                s_bottom_top_main_window.forget()
+                c_bottom_top_main_window.pack(anchor="w")
+                self.Text_Tips.insert(INSERT,"关闭服务器......\n")
+                self.SocketCONN.closeaccept()
+                self.SocketCONN.closerecvS()
             
     def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):
-        threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4)).start()
+        if self.SocketCONN != None:
+            threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4)).start()
 
     # 客户端连接开始
     def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):

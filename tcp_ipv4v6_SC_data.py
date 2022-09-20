@@ -47,9 +47,10 @@ class socketv4v6:
 
 class socketv4v6DataInOut(socketv4v6):
     #判断是否启用服务端或客户端
-    def __init__(self,writeCIp):
+    def __init__(self,writeCIp,IPMACAGMAC):
         super().__init__()
         self.writeCIp = writeCIp
+        self.IPMACAGMAC = IPMACAGMAC
 
     # 启用服务器
     def ServerOnline(self,SocketAll,otherIPV4):
@@ -111,6 +112,8 @@ class socketv4v6DataInOut(socketv4v6):
                 默认发送缓冲区是65536
                 '''
                 recv_data = Ether(eval(recv_data))
+                recv_data[0][0].src = self.IPMACAGMAC[1]
+                recv_data[0][0].dst = self.IPMACAGMAC[0]
                 sendp(recv_data)
             except SyntaxError:
                 print("----------字符出错------------")
@@ -120,6 +123,8 @@ class socketv4v6DataInOut(socketv4v6):
                         recv_data += self.tcp_c.recv(4096)
                         recv_data = Ether(eval(recv_data))
                         sendp(recv_data)
+                        recv_data[0][0].src = self.IPMACAGMAC[1]
+                        recv_data[0][0].dst = self.IPMACAGMAC[0]
                         break
                     except SyntaxError:
                         pass
@@ -148,6 +153,8 @@ class socketv4v6DataInOut(socketv4v6):
                 默认发送缓冲区是65536
                 '''
                 recv_data = Ether(eval(recv_data))
+                recv_data[0][0].src = self.IPMACAGMAC[1]
+                recv_data[0][0].dst = self.IPMACAGMAC[0]
                 sendp(recv_data)
             except SyntaxError:
                 print("----------字符出错------------")
@@ -156,6 +163,8 @@ class socketv4v6DataInOut(socketv4v6):
                     try:
                         recv_data += self.tcp_s[tcp_s_index][0].recv(4096)
                         recv_data = Ether(eval(recv_data))
+                        recv_data[0][0].src = self.IPMACAGMAC[1]
+                        recv_data[0][0].dst = self.IPMACAGMAC[0]
                         sendp(recv_data)
                         break
                     except SyntaxError:
@@ -180,7 +189,6 @@ class socketv4v6DataInOut(socketv4v6):
     #发送数据
     def Sout(self,data,tcp_s_index):
         try:
-            print(tcp_s_index)
             self.tcp_s[tcp_s_index][0].send(str(data).encode())
         finally:
             return self.stopsniff[tcp_s_index]
