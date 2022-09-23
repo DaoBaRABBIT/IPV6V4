@@ -61,7 +61,7 @@ Listbox_conninfoProt.grid(row=1,column=1)
 Listbox_conninfo = Listbox(Listbox_Frame,width=15,height=8)
 Listbox_conninfo.grid(row=1,column=2)
 Listbox_Frame.grid(row=2,column=0)
-founction.setCIpPortState(Listbox_conninfoIP,Listbox_conninfoProt,Listbox_conninfo)
+
 
 # 客户端内容
 c_bottom_top_main_window = Frame(bottom_top_main_window)
@@ -70,8 +70,8 @@ Label_ConnectionI6 = Label(c_bottom_top_main_window,text="输入需要连接的I
 Entry_ConnectionI6 = Entry(c_bottom_top_main_window,width=50,textvariable=IPV6ADDCONN).grid(row=1,column=1,sticky="w")
 Label_ConnectionI6Port = Label(c_bottom_top_main_window,text="输入端口号：").grid(row=2,column=0,sticky="w",pady=5)
 Entry_ConnectionI6 = Entry(c_bottom_top_main_window,textvariable=IPV6ADDCONNP).grid(row=2,column=1,sticky="w",pady=10)
-Button_StopI6 = Button(c_bottom_top_main_window,text="断开连接",width=20,height=1,command=lambda: founction.ErrorAStopC(Button_StopI6,Button_ConnectionI6))
-Button_ConnectionI6 = Button(c_bottom_top_main_window,text="连接",width=20,height=1,command=lambda: founction.tStartupC(IPV6ADDCONN.get(),IPV6ADDCONNP.get(),Button_ConnectionI6,Button_StopI6,Label_OtherIPV4))
+Button_StopI6 = Button(c_bottom_top_main_window,text="断开连接",width=20,height=1,command=lambda: founction.ErrorAStopC())
+Button_ConnectionI6 = Button(c_bottom_top_main_window,text="连接",width=20,height=1,command=lambda: founction.tStartupC(IPV6ADDCONN.get(),IPV6ADDCONNP.get(),Label_OtherIPV4))
 Button_ConnectionI6.grid(row=3,column=0,columnspan=2,pady=5)
 Label_OtherIPV4 = Label(c_bottom_top_main_window,text="对方主机的IPV4为：")
 Label_OtherIPV4.grid(row=4,column=0,columnspan=2,sticky="w",pady=5)
@@ -90,10 +90,14 @@ Scrollbar_Tips.grid(row=1,column=3,sticky="nsew",padx=(2,0),pady=(10,0))
 Text_Tips = Text(bottom_main_window,yscrollcommand=Scrollbar_Tips.set)
 Text_Tips.grid(row=1,column=0,columnspan=2,pady=(10,0))
 Text_Tips.insert(END,"启动客户端\n")
-founction.setText_Tips(Text_Tips)
 bottom_main_window.pack(anchor="w")
 
 MaxBox_main.pack(padx=10,pady=10)
 
+founction.setCIpPortState(Listbox_conninfoIP,Listbox_conninfoProt,Listbox_conninfo,Button_StopI6,Button_ConnectionI6)
+founction.setText_Tips(Text_Tips)
+
 main_window.mainloop()
+
+
 

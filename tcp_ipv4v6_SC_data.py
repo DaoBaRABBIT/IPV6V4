@@ -48,11 +48,13 @@ class socketv4v6:
 
 class socketv4v6DataInOut(socketv4v6):
     #判断是否启用服务端或客户端
-    def __init__(self,writeCIp,IPMACAGMAC):
+    def __init__(self,writeCIp,IPMACAGMAC,writeText_Tips,ErrorAStopC):
         super().__init__()
         self.writeCIp = writeCIp
         self.IPMACAGMAC = IPMACAGMAC
-
+        self.writeText_Tips = writeText_Tips
+        self.ErrorAStopC = ErrorAStopC
+        self.cloC = 0
     # 启用服务器
     def ServerOnline(self,SocketAll,otherIPV4):
         self.tcp_s = SocketAll
@@ -86,6 +88,7 @@ class socketv4v6DataInOut(socketv4v6):
 
     # 启用客户端
     def ClientOnline(self,IPinfo):
+        self.IPinfo = IPinfo
         super().__init__() 
         self.stopsniff = False
         self.tcp_c = super().ipv6client_c(IPinfo)
@@ -131,21 +134,43 @@ class socketv4v6DataInOut(socketv4v6):
                         pass
                     except Exception as reportError:
                         print("133错误报告：%s"%(reportError))
+                        self.writeText_Tips("133错误报告：%s"%(reportError))
                         break
                     
             except Exception as reportError:
-                 print("137错误报告：%s"%(reportError))
+                 print("138错误报告：%s"%(reportError))
+                 self.writeText_Tips("138错误报告：%s"%(reportError))
                  self.stopsniff = True
                  send(IP(src="1.1.1.1",dst="0.0.0.0"))
                  self.tcp_c.close()
                  break
+
+        frequency = 1
+        while True:
+            if self.cloC == 0:
+                if frequency == 6:
+                    self.writeText_Tips("尝试重新连接次数过多取消连接")
+                    self.ErrorAStopC()
+                    break
+                else:
+                    self.writeText_Tips("尝试重新连接-次数：%s"%frequency)
+                    try:
+                        self.ClientOnline(self.IPinfo)
+                    except Exception as reportError:
+                        frequency += 1
+                        print("157错误报告：%s"%(reportError))
+                        self.writeText_Tips("157错误报告：%s"%(reportError))
+            else:
+                self.cloC = 0
+                break
 
     #发送数据
     def Cout(self,data):
         try:
             self.tcp_c.send(str(data).encode())
         except Exception as reportError:
-            print("148错误报告：%s"%(reportError))
+            print("167错误报告：%s"%(reportError))
+            self.writeText_Tips("168错误报告：%s"%(reportError))
         finally:
             return self.stopsniff
 
@@ -174,11 +199,13 @@ class socketv4v6DataInOut(socketv4v6):
                     except SyntaxError:
                         pass
                     except Exception as reportError:
-                        print("177错误报告：%s"%(reportError))
+                        print("197错误报告：%s"%(reportError))
+                        self.writeText_Tips("198错误报告：%s"%(reportError))
                         break
                     
             except Exception as reportError:
-                print("181错误报告：%s"%(reportError))
+                print("202错误报告：%s"%(reportError))
+                self.writeText_Tips("202错误报告：%s"%(reportError))
                 self.stopsniff[tcp_s_index] = True
                 dststr = "{0}.{0}.{0}.{0}".format(tcp_s_index)
                 send(IP(src="1.1.1.1",dst=dststr))
@@ -194,24 +221,25 @@ class socketv4v6DataInOut(socketv4v6):
         try:
             self.tcp_s[tcp_s_index][0].send(str(data).encode())
         except Exception as reportError:
-            print("197错误报告：%s"%(reportError))
+            print("219错误报告：%s"%(reportError))
+            self.writeText_Tips("219错误报告：%s"%(reportError))
         finally:
             return self.stopsniff[tcp_s_index]
 
     def closerecvC(self):
+        self.cloC = 1
         self.stopsniff = True
         send(IP(src="1.1.1.1",dst="0.0.0.0"))
         self.tcp_c.close()
-        return "连接关闭"
 
     def closerecvS(self):
-        self.stopsniff = [True]*8
         if self.tcp_s != None:
             for index,value in enumerate(self.tcp_s):
                 if value != None:
-                    dststr = "{0}.{0}.{0}.{0}".format(index)
-                    send(IP(src="1.1.1.1",dst=dststr))
-                    self.tcp_s[index][0].close()
-                    self.tcp_sc_socket.close()
-    
+                    try:
+                        self.tcp_s[index][0].close()
+                        self.tcp_sc_socket.close() #关掉服务器监听
+                    except Exception as reportError: 
+                        print("239错误报告：%s"%(reportError))
+                        self.writeText_Tips("239错误报告：%s"%(reportError))
     

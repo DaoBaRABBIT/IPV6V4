@@ -25,20 +25,27 @@ class main_function:
         IPMACAGMAC = getIPMACAGMAC(IPV64ADD[0]) #0为网卡MAC地址 1为网关MAC地址
         
         if IPV64ADD[0] == "获取失败" or IPV64ADD[1] == "获取失败":
-            self.Text_Tips.insert(INSERT,"\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查IP地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！\n")
+            self.writeText_Tips("\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查IP地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！")
             self.SocketCONN = None
         else:
             if IPMACAGMAC == None :
-                self.Text_Tips.insert(INSERT,"\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查MAC地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！\n")
+                self.writeText_Tips("\n！！！！！！！！！！！！！！！！！！！！\n\n严重错误此软件无法正常运行\n请检查MAC地址获取情况\n\n！！！！！！！！！！！！！！！！！！！！")
                 self.SocketCONN = None
             else:
-                self.SocketCONN = socketv4v6DataInOut(self.writeCIp,IPMACAGMAC)
+                self.SocketCONN = socketv4v6DataInOut(self.writeCIp,IPMACAGMAC,self.writeText_Tips,self.ErrorAStopC)
                 self.IPV6PORT.set(self.SocketCONN.getPort())
+    
+    # 写警告提示
+    def writeText_Tips(self,Text):
+        self.Text_Tips.insert(INSERT,Text+"\n")
 
-    def setCIpPortState(self,Listbox_conninfoIP,Listbox_conninfoProt,Listbox_conninfo):
+    # 存接入客户端的信息
+    def setCIpPortState(self,Listbox_conninfoIP,Listbox_conninfoProt,Listbox_conninfo,Button_StopI6,Button_ConnectionI6):
         self.Listbox_conninfoIP = Listbox_conninfoIP
         self.Listbox_conninfoProt = Listbox_conninfoProt
         self.Listbox_conninfo = Listbox_conninfo
+        self.Button_StopI6 = Button_StopI6
+        self.Button_ConnectionI6 = Button_ConnectionI6
     
     # 重置本机信息
     def Resetip(self):
@@ -71,10 +78,10 @@ class main_function:
                 self.controlSC = 1
                 s_bottom_top_main_window.pack(anchor="w")
                 c_bottom_top_main_window.forget()
-                self.Text_Tips.insert(INSERT,"服务器启动中......\n")
+                self.writeText_Tips("服务器启动中......")
                 tlisten = threading.Thread(target=lambda: self.SocketCONN.ServerOnline(self.SocketAll,self.otherIPV4))
                 tlisten.start()
-                self.Text_Tips.insert(INSERT,"等待对方IPV6连接......\n")
+                self.writeText_Tips("等待对方IPV6连接......")
         
         
     # 变更为客户端
@@ -84,35 +91,37 @@ class main_function:
                 self.controlSC = 0
                 s_bottom_top_main_window.forget()
                 c_bottom_top_main_window.pack(anchor="w")
-                self.Text_Tips.insert(INSERT,"关闭服务器......\n")
+                self.writeText_Tips("关闭服务器......")
                 self.SocketCONN.closeaccept()
                 self.SocketCONN.closerecvS()
             
-    def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):
+    def tStartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Label_OtherIPV4):
         if self.SocketCONN != None:
-            threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4)).start()
+            threading.Thread(target=self.StartupC,args=(IPV6ADDCONN,IPV6ADDCONNP,Label_OtherIPV4)).start()
 
     # 客户端连接开始
-    def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Button_ConnectionI6,Button_StopI6,Label_OtherIPV4):
+    def StartupC(self,IPV6ADDCONN,IPV6ADDCONNP,Label_OtherIPV4):
         try:
             IPinfo = (IPV6ADDCONN,int(IPV6ADDCONNP))
-            self.Text_Tips.insert(INSERT,"连接服务器中......\n")
-            Button_ConnectionI6.configure(state=DISABLED,text="连接中...")
+            self.writeText_Tips("连接服务器中......")
+            self.Button_ConnectionI6.configure(state=DISABLED,text="连接中...")
             otherIPV4add = self.SocketCONN.ClientOnline(IPinfo)
             Label_OtherIPV4.configure(text=("对方主机的IPV4为："+otherIPV4add))
-            Button_ConnectionI6.grid_forget()
-            Button_StopI6.grid(row=3,column=0,columnspan=2,pady=5)
-            self.Text_Tips.insert(INSERT,"连接服务器成功！！！\n")
+            self.Button_ConnectionI6.grid_forget()
+            self.Button_StopI6.grid(row=3,column=0,columnspan=2,pady=5)
+            self.writeText_Tips("连接服务器成功！！！")
             # 启用线程
             
         except Exception as reportError:
-            self.Text_Tips.insert(INSERT,str(reportError)+"\n")
-            Button_ConnectionI6.configure(state=ACTIVE,text="连接")
+            self.writeText_Tips(str(reportError))
+            self.Button_ConnectionI6.configure(state=ACTIVE,text="连接")
 
     # 停止客户端连接
-    def ErrorAStopC(self,Button_StopI6,Button_ConnectionI6):
-        report = self.SocketCONN.closerecvC()
-        self.Text_Tips.insert(INSERT,report + "\n")
-        Button_StopI6.grid_forget()
-        Button_ConnectionI6.configure(state=ACTIVE,text="连接")
-        Button_ConnectionI6.grid(row=3,column=0,columnspan=2,pady=5)
+    def ErrorAStopC(self):
+        try:
+            self.SocketCONN.closerecvC()
+        finally:
+            self.writeText_Tips("连接关闭")
+            self.Button_StopI6.grid_forget()
+            self.Button_ConnectionI6.configure(state=ACTIVE,text="连接")
+            self.Button_ConnectionI6.grid(row=3,column=0,columnspan=2,pady=5)
