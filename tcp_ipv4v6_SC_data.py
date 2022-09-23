@@ -9,6 +9,7 @@ class socketv4v6:
     #初始化socket套接字
     def __init__(self):
         tcp_sc_socket=socket.socket(socket.AF_INET6,socket.SOCK_STREAM)
+        tcp_sc_socket.setsockopt(socket.IPPROTO_TCP,socket.TCP_NODELAY,1)
         self.bindprot = 9091
         while True:
             try:
@@ -107,7 +108,7 @@ class socketv4v6DataInOut(socketv4v6):
     def Cin(self):
         while True:
             try:
-                recv_data = self.tcp_c.recv(4096) 
+                recv_data = self.tcp_c.recv(65536) 
                 '''
                 默认发送缓冲区是65536
                 '''
@@ -120,19 +121,20 @@ class socketv4v6DataInOut(socketv4v6):
                 print("----------拼接数据------------")
                 while True:
                     try:
-                        recv_data += self.tcp_c.recv(4096)
+                        recv_data += self.tcp_c.recv(65536)
                         recv_data = Ether(eval(recv_data))
-                        sendp(recv_data)
                         recv_data[0][0].src = self.IPMACAGMAC[1]
                         recv_data[0][0].dst = self.IPMACAGMAC[0]
+                        sendp(recv_data)
                         break
                     except SyntaxError:
                         pass
-                    except Exception:
+                    except Exception as reportError:
+                        print("133错误报告：%s"%(reportError))
                         break
                     
             except Exception as reportError:
-                 print("错误报告：%s"%(reportError))
+                 print("137错误报告：%s"%(reportError))
                  self.stopsniff = True
                  send(IP(src="1.1.1.1",dst="0.0.0.0"))
                  self.tcp_c.close()
@@ -142,13 +144,15 @@ class socketv4v6DataInOut(socketv4v6):
     def Cout(self,data):
         try:
             self.tcp_c.send(str(data).encode())
+        except Exception as reportError:
+            print("148错误报告：%s"%(reportError))
         finally:
             return self.stopsniff
 
     def Sin(self,tcp_s_index):
         while True:
             try:
-                recv_data = self.tcp_s[tcp_s_index][0].recv(4096) 
+                recv_data = self.tcp_s[tcp_s_index][0].recv(65536) 
                 '''
                 默认发送缓冲区是65536
                 '''
@@ -161,7 +165,7 @@ class socketv4v6DataInOut(socketv4v6):
                 print("----------拼接数据------------")
                 while True:
                     try:
-                        recv_data += self.tcp_s[tcp_s_index][0].recv(4096)
+                        recv_data += self.tcp_s[tcp_s_index][0].recv(65536)
                         recv_data = Ether(eval(recv_data))
                         recv_data[0][0].src = self.IPMACAGMAC[1]
                         recv_data[0][0].dst = self.IPMACAGMAC[0]
@@ -169,27 +173,28 @@ class socketv4v6DataInOut(socketv4v6):
                         break
                     except SyntaxError:
                         pass
-                    except Exception:
+                    except Exception as reportError:
+                        print("177错误报告：%s"%(reportError))
                         break
                     
-            except ConnectionResetError as reportError:
-                print("错误报告：%s"%(reportError))
+            except Exception as reportError:
+                print("181错误报告：%s"%(reportError))
                 self.stopsniff[tcp_s_index] = True
                 dststr = "{0}.{0}.{0}.{0}".format(tcp_s_index)
                 send(IP(src="1.1.1.1",dst=dststr))
                 self.tcp_s[tcp_s_index][0].close()
                 self.tcp_s[tcp_s_index] = None
+                time.sleep(0.5)
                 self.stopsniff[tcp_s_index] = False
                 self.writeCIp()
-                break
-            except ConnectionAbortedError as reportError:
-                print("错误报告：%s"%(reportError))
                 break
 
     #发送数据
     def Sout(self,data,tcp_s_index):
         try:
             self.tcp_s[tcp_s_index][0].send(str(data).encode())
+        except Exception as reportError:
+            print("197错误报告：%s"%(reportError))
         finally:
             return self.stopsniff[tcp_s_index]
 
